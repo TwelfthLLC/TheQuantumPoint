@@ -1,5 +1,13 @@
-use ir::{emit_value_expr, sanitize_ident, Action, Program, ValueExpr};
+//! Core layer → Rust source (`main.rs`, `Cargo.toml`).
+
+mod actions;
+mod decls;
+
+use ir::Program;
 use std::fmt::Write;
+
+use actions::emit_action;
+use decls::{emit_enum, emit_function, emit_struct};
 
 pub struct RustOutput {
     pub cargo_toml: String,
@@ -18,11 +26,7 @@ pub fn emit(program: &Program) -> RustOutput {
         "fn qp_mock_rows(table: &str) -> Vec<(&'static str, &'static str)> {{"
     )
     .unwrap();
-    writeln!(
-        &mut main_rs,
-        "    match table {{"
-    )
-    .unwrap();
+    writeln!(&mut main_rs, "    match table {{").unwrap();
     writeln!(
         &mut main_rs,
         "        \"users\" => vec![(\"id\", \"1\"), (\"name\", \"Ada\")],"
@@ -40,6 +44,16 @@ pub fn emit(program: &Program) -> RustOutput {
     .unwrap();
     writeln!(&mut main_rs, "    }}").unwrap();
     writeln!(&mut main_rs, "}}\n").unwrap();
+
+    for s in &program.structs {
+        emit_struct(&mut main_rs, s);
+    }
+    for e in &program.enums {
+        emit_enum(&mut main_rs, e);
+    }
+    for f in &program.functions {
+        emit_function(&mut main_rs, f);
+    }
 
     if program.needs_async_runtime {
         writeln!(&mut main_rs, "#[tokio::main]").unwrap();
@@ -82,182 +96,4 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
         cargo_toml,
         main_rs,
     }
-}
-
-fn emit_action(out: &mut String, action: &Action, indent: usize) {
-    let pad = "    ".repeat(indent);
-    match action {
-        Action::Print { message } => {
-            writeln!(out, "{pad}println!(\"{}\");", escape_rust_str(message)).unwrap();
-        }
-        Action::DataStore { name, value } => {
-            let ident = sanitize_ident(name);
-            let rhs = infer_rhs(value);
-            writeln!(out, "{pad}let {ident} = {rhs};").unwrap();
-        }
-        Action::DbRead { table, into_var } => {
-            let ident = sanitize_ident(into_var);
-            writeln!(
-                out,
-                "{pad}let {ident} = qp_mock_rows({:?}).into_iter().next().unwrap_or((\"id\", \"0\"));",
-                table
-            )
-            .unwrap();
-            writeln!(
-                out,
-                "{pad}println!(\"db.read {{}} -> {{:?}}\", {:?}, {ident});",
-                table
-            )
-            .unwrap();
-        }
-        Action::Module { name, actions } => {
-            writeln!(out, "{pad}{{ // module {name}").unwrap();
-            for a in actions {
-                emit_action(out, a, indent + 1);
-            }
-            writeln!(out, "{pad}}}").unwrap();
-        }
-        Action::Branch {
-            condition,
-            then_body,
-            else_body,
-        } => {
-            let cond = emit_value_expr(condition);
-            writeln!(out, "{pad}if {cond} {{").unwrap();
-            for a in then_body {
-                emit_action(out, a, indent + 1);
-            }
-            if else_body.is_empty() {
-                writeln!(out, "{pad}}}").unwrap();
-            } else {
-                writeln!(out, "{pad}}} else {{").unwrap();
-                for a in else_body {
-                    emit_action(out, a, indent + 1);
-                }
-                writeln!(out, "{pad}}}").unwrap();
-            }
-        }
-        Action::While { condition, body } => {
-            let cond = emit_value_expr(condition);
-            writeln!(out, "{pad}while {cond} {{").unwrap();
-            for a in body {
-                emit_action(out, a, indent + 1);
-            }
-            writeln!(out, "{pad}}}").unwrap();
-        }
-        Action::For { var, from, to, body } => {
-            let ident = sanitize_ident(var);
-            writeln!(out, "{pad}for {ident} in {from}..={to} {{").unwrap();
-            for a in body {
-                emit_action(out, a, indent + 1);
-            }
-            writeln!(out, "{pad}}}").unwrap();
-        }
-        Action::ForEach {
-            item_var,
-            collection,
-            body,
-        } => {
-            let item = sanitize_ident(item_var);
-            writeln!(
-                out,
-                "{pad}for {item} in qp_mock_rows({:?}) {{",
-                collection
-            )
-            .unwrap();
-            for a in body {
-                emit_action(out, a, indent + 1);
-            }
-            writeln!(out, "{pad}}}").unwrap();
-        }
-        Action::Return { value } => {
-            if let Some(v) = value {
-                writeln!(out, "{pad}return {};", infer_rhs(v)).unwrap();
-            } else {
-                writeln!(out, "{pad}return;").unwrap();
-            }
-        }
-        Action::Switch {
-            discriminant,
-            arms,
-            default_body,
-        } => {
-            let disc = emit_value_expr(discriminant);
-            writeln!(out, "{pad}match &{disc} {{").unwrap();
-            for arm in arms {
-                let pat = switch_arm_pattern(&arm.label);
-                writeln!(out, "{pad}    {pat} => {{").unwrap();
-                for a in &arm.body {
-                    emit_action(out, a, indent + 2);
-                }
-                writeln!(out, "{pad}    }}").unwrap();
-            }
-            writeln!(out, "{pad}    _ => {{").unwrap();
-            for a in default_body {
-                emit_action(out, a, indent + 2);
-            }
-            writeln!(out, "{pad}    }}").unwrap();
-            writeln!(out, "{pad}}}").unwrap();
-        }
-        Action::Break => {
-            writeln!(out, "{pad}break;").unwrap();
-        }
-        Action::Continue => {
-            writeln!(out, "{pad}continue;").unwrap();
-        }
-        Action::Try {
-            try_body,
-            catch_body,
-        } => {
-            writeln!(out, "{pad}match (|| -> Result<(), String> {{").unwrap();
-            for a in try_body {
-                emit_action(out, a, indent + 1);
-            }
-            writeln!(out, "{pad}    Ok(())").unwrap();
-            writeln!(out, "{pad}}})() {{").unwrap();
-            writeln!(out, "{pad}    Ok(()) => {{}},").unwrap();
-            writeln!(out, "{pad}    Err(_e) => {{").unwrap();
-            for a in catch_body {
-                emit_action(out, a, indent + 2);
-            }
-            writeln!(out, "{pad}    }}").unwrap();
-            writeln!(out, "{pad}}}").unwrap();
-        }
-        Action::Expr { name, value } => {
-            let ident = sanitize_ident(name);
-            writeln!(out, "{pad}let {ident} = {};", emit_value_expr(value)).unwrap();
-        }
-        Action::Async { body } => {
-            writeln!(out, "{pad}{{").unwrap();
-            for a in body {
-                emit_action(out, a, indent + 1);
-            }
-            writeln!(out, "{pad}}}").unwrap();
-        }
-    }
-}
-
-fn switch_arm_pattern(label: &str) -> String {
-    if let Ok(n) = label.parse::<i64>() {
-        format!("{n}")
-    } else if label == "true" || label == "false" {
-        label.to_string()
-    } else {
-        format!("{label:?}")
-    }
-}
-
-fn infer_rhs(value: &ValueExpr) -> String {
-    match value {
-        ValueExpr::Bool(b) => b.to_string(),
-        ValueExpr::I64(n) => n.to_string(),
-        ValueExpr::F64(n) => format!("{n}"),
-        ValueExpr::Str(s) => format!("{s:?}"),
-        ValueExpr::Ident(name) => sanitize_ident(name),
-        other => emit_value_expr(other),
-    }
-}
-
-fn escape_rust_str(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('"', "\\\"")
 }

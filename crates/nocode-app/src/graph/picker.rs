@@ -1,7 +1,9 @@
 use egui::{Pos2, Ui, Vec2};
 use graph_model::{
-    maturity_label, node_maturity, DataValue, Node, Project, NODE_ASSIGN, NODE_EXPR, NODE_FOR,
-    NODE_FOREACH, NODE_IF, NODE_LOG, NODE_RETURN, NODE_SUBGRAPH, NODE_SWITCH, NODE_WHILE,
+    maturity_label, node_maturity, DataValue, Node, Project, NODE_ASSIGN, NODE_AWAIT, NODE_CALL,
+    NODE_CONST, NODE_ENUM, NODE_EXPR, NODE_FOR, NODE_FOREACH, NODE_FUNCTION, NODE_IF, NODE_IMPORT,
+    NODE_LIST, NODE_LOG, NODE_RETURN, NODE_STRUCT, NODE_SUBGRAPH, NODE_SWITCH, NODE_THROW,
+    NODE_WHILE,
 };
 use std::collections::HashMap;
 
@@ -82,6 +84,40 @@ pub fn add_node_at(project: &mut Project, kind: &str, world: Pos2) -> String {
         NODE_EXPR => {
             data.insert("name".to_string(), DataValue::str("result"));
             data.insert("expression".to_string(), DataValue::str("a + b"));
+        }
+        NODE_FUNCTION => {
+            data.insert("name".to_string(), DataValue::str("greet"));
+            data.insert("params".to_string(), DataValue::str("x,y"));
+        }
+        NODE_CALL => {
+            data.insert("name".to_string(), DataValue::str("greet"));
+            data.insert("args".to_string(), DataValue::str("1,2"));
+            data.insert("into".to_string(), DataValue::str("out"));
+        }
+        NODE_CONST => {
+            data.insert("name".to_string(), DataValue::str("MAX"));
+            data.insert("value".to_string(), DataValue::typed_i64(100));
+        }
+        NODE_LIST => {
+            data.insert("name".to_string(), DataValue::str("nums"));
+            data.insert("items".to_string(), DataValue::str("1,2,3"));
+        }
+        NODE_THROW => {
+            data.insert("message".to_string(), DataValue::str("xato"));
+        }
+        NODE_AWAIT => {
+            data.insert("into".to_string(), DataValue::str(""));
+        }
+        NODE_IMPORT => {
+            data.insert("module".to_string(), DataValue::str("graphs/auth.qp"));
+        }
+        NODE_STRUCT => {
+            data.insert("name".to_string(), DataValue::str("User"));
+            data.insert("fields".to_string(), DataValue::str("id,name"));
+        }
+        NODE_ENUM => {
+            data.insert("name".to_string(), DataValue::str("Status"));
+            data.insert("variants".to_string(), DataValue::str("Ok,Err"));
         }
         graph_model::NODE_EMIT_UI => {
             data.insert("signal".to_string(), DataValue::str("refresh_ui"));

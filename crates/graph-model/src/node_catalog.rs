@@ -26,7 +26,16 @@ pub fn node_maturity(kind: &str) -> NodeMaturity {
         | crate::NODE_SWITCH
         | crate::NODE_TRY
         | crate::NODE_ASYNC
-        | crate::NODE_DB_READ => NodeMaturity::Stable,
+        | crate::NODE_DB_READ
+        | crate::NODE_FUNCTION
+        | crate::NODE_CALL
+        | crate::NODE_CONST
+        | crate::NODE_THROW
+        | crate::NODE_AWAIT
+        | crate::NODE_IMPORT
+        | crate::NODE_STRUCT
+        | crate::NODE_ENUM
+        | crate::NODE_LIST => NodeMaturity::Stable,
         crate::NODE_SUBGRAPH => NodeMaturity::Beta,
         crate::NODE_UI_PAGE
         | crate::NODE_UI_BUTTON
@@ -62,6 +71,15 @@ pub fn node_support_hint(kind: &str) -> &'static str {
         crate::NODE_TRY => "Try → try/catch (Result-based lowering).",
         crate::NODE_EXPR => "Expr → assign from expression (e.g. a + b).",
         crate::NODE_ASYNC => "Async → block under tokio when emitted.",
+        crate::NODE_FUNCTION => "Function → top-level fn (body port, not on main exec chain).",
+        crate::NODE_CALL => "Call → invoke a defined function.",
+        crate::NODE_CONST => "Const → immutable binding.",
+        crate::NODE_THROW => "Throw → error inside try/catch.",
+        crate::NODE_AWAIT => "Await → cooperative yield (tokio).",
+        crate::NODE_IMPORT => "Import → inline subgraph module.",
+        crate::NODE_STRUCT => "Struct → type declaration in emitted Rust.",
+        crate::NODE_ENUM => "Enum → type declaration in emitted Rust.",
+        crate::NODE_LIST => "List → vec literal binding.",
         crate::NODE_DB_READ => "DB Read → mock table lookup (preview + emit).",
         crate::NODE_SUBGRAPH => "Subgraph → inline module from manifest.",
         crate::NODE_UI_PAGE

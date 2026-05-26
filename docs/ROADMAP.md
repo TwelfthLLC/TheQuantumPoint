@@ -39,7 +39,7 @@ Updated: Core language constructs and Bridge HTTP listener are product-ready; Vi
 
 ## ✅ Core language (v0.0.0.2)
 
-- **Stable:** `while`, `for`, `foreach`, `return`, `break`, `continue`, `expr`, `switch` (comma `cases` + up to 6 ports), `try` (Result lowering), `async` (tokio when used), `db_read` (mock tables)
+- **Stable:** `while`, `for`, `foreach`, `return`, `break`, `continue`, `expr`, `switch` (comma `cases` + up to 6 ports), `try` (Result lowering), `async` / `await` (tokio when used), `db_read` (mock tables), `function`, `call`, `const`, `list`, `throw`, `import`, `struct`, `enum`
 - **Beta:** `subgraph_call` (needs project root loader)
 
 ## 🔜 Next work

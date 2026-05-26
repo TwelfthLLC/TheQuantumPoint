@@ -1,10 +1,10 @@
 use egui::{Color32, Pos2, Rect, Sense, Stroke, Ui, Vec2};
 use graph_model::{
-    Node, NODE_API_QUERY, NODE_API_ROUTE, NODE_ASSIGN, NODE_ASYNC, NODE_BREAK, NODE_CONTINUE,
-    NODE_DB_READ, NODE_EMIT_UI, NODE_EXPR, NODE_FOR, NODE_FOREACH, NODE_IF, NODE_LOG, NODE_RETURN,
-    NODE_START,
-    NODE_SUBGRAPH, NODE_SWITCH, NODE_TRY, NODE_UI_BUTTON, NODE_UI_EVENT, NODE_UI_INPUT,
-    NODE_UI_LABEL, NODE_UI_PAGE, NODE_WHILE,
+    Node, NODE_API_QUERY, NODE_API_ROUTE, NODE_ASSIGN, NODE_ASYNC, NODE_AWAIT, NODE_BREAK,
+    NODE_CALL, NODE_CONST, NODE_CONTINUE, NODE_DB_READ, NODE_EMIT_UI, NODE_ENUM, NODE_EXPR,
+    NODE_FOR, NODE_FOREACH, NODE_FUNCTION, NODE_IF, NODE_IMPORT, NODE_LIST, NODE_LOG, NODE_RETURN,
+    NODE_START, NODE_STRUCT, NODE_SUBGRAPH, NODE_SWITCH, NODE_THROW, NODE_TRY, NODE_UI_BUTTON,
+    NODE_UI_EVENT, NODE_UI_INPUT, NODE_UI_LABEL, NODE_UI_PAGE, NODE_WHILE,
 };
 
 use super::edges::handle_color;
@@ -117,7 +117,10 @@ pub(crate) fn handle_hit_zones(node: &Node, rect: Rect, z: f32) -> Vec<(HandleKi
             out.push((
                 HandleKind::DefaultOut,
                 handle_rect(
-                    Pos2::new(rect.right(), rect.top() + rect.height() * (n as f32 + 1.0) / (n as f32 + 2.0)),
+                    Pos2::new(
+                        rect.right(),
+                        rect.top() + rect.height() * (n as f32 + 1.0) / (n as f32 + 2.0),
+                    ),
                     s,
                 ),
             ));
@@ -144,14 +147,17 @@ pub(crate) fn handle_hit_zones(node: &Node, rect: Rect, z: f32) -> Vec<(HandleKi
                 handle_rect(Pos2::new(rect.center().x, rect.bottom()), s),
             ));
         }
-        NODE_WHILE | NODE_FOR | NODE_FOREACH | NODE_ASYNC => {
+        NODE_WHILE | NODE_FOR | NODE_FOREACH | NODE_ASYNC | NODE_FUNCTION => {
             out.push((
                 HandleKind::ExecIn,
                 handle_rect(Pos2::new(rect.left(), rect.center().y), s),
             ));
             out.push((
                 HandleKind::BodyOut,
-                handle_rect(Pos2::new(rect.right(), rect.top() + rect.height() * 0.35), s),
+                handle_rect(
+                    Pos2::new(rect.right(), rect.top() + rect.height() * 0.35),
+                    s,
+                ),
             ));
             out.push((
                 HandleKind::DoneOut,
@@ -189,17 +195,11 @@ fn push_if_ports(out: &mut Vec<(HandleKind, Rect)>, rect: Rect, s: f32) {
     ));
     out.push((
         HandleKind::TrueOut,
-        handle_rect(
-            Pos2::new(rect.right(), rect.top() + rect.height() * 0.3),
-            s,
-        ),
+        handle_rect(Pos2::new(rect.right(), rect.top() + rect.height() * 0.3), s),
     ));
     out.push((
         HandleKind::FalseOut,
-        handle_rect(
-            Pos2::new(rect.right(), rect.top() + rect.height() * 0.7),
-            s,
-        ),
+        handle_rect(Pos2::new(rect.right(), rect.top() + rect.height() * 0.7), s),
     ));
     out.push((
         HandleKind::DoneOut,
@@ -261,8 +261,11 @@ fn node_color(node: &Node, p: &Palette) -> Color32 {
         NODE_ASSIGN => p.assign,
         NODE_IF | NODE_WHILE | NODE_FOR | NODE_FOREACH | NODE_SWITCH => p.if_node,
         NODE_RETURN | NODE_BREAK => p.danger,
-        NODE_CONTINUE | NODE_ASYNC => p.accent,
-        NODE_TRY | NODE_EXPR => p.warn,
+        NODE_CONTINUE | NODE_ASYNC | NODE_AWAIT => p.accent,
+        NODE_TRY | NODE_EXPR | NODE_LIST => p.warn,
+        NODE_FUNCTION | NODE_CALL | NODE_CONST => p.assign,
+        NODE_THROW => p.danger,
+        NODE_STRUCT | NODE_ENUM | NODE_IMPORT => p.success,
         NODE_UI_PAGE => p.accent,
         NODE_UI_BUTTON => p.success,
         NODE_UI_LABEL => p.log,
@@ -292,6 +295,15 @@ fn node_title(node: &Node) -> &'static str {
         NODE_TRY => "Try",
         NODE_EXPR => "Expr",
         NODE_ASYNC => "Async",
+        NODE_FUNCTION => "Function",
+        NODE_CALL => "Call",
+        NODE_CONST => "Const",
+        NODE_LIST => "List",
+        NODE_THROW => "Throw",
+        NODE_AWAIT => "Await",
+        NODE_IMPORT => "Import",
+        NODE_STRUCT => "Struct",
+        NODE_ENUM => "Enum",
         NODE_UI_PAGE => "Page",
         NODE_UI_BUTTON => "Button",
         NODE_UI_LABEL => "Label",
@@ -336,6 +348,31 @@ fn node_summary(node: &Node) -> String {
             format!("{} match [{}]", data_str(node, "variable", "x"), cases)
         }
         NODE_EXPR => data_str(node, "expression", "a + b"),
+        NODE_FUNCTION => format!(
+            "fn {}({})",
+            data_str(node, "name", "f"),
+            data_str(node, "params", "")
+        ),
+        NODE_CALL => format!("call {}", data_str(node, "name", "f")),
+        NODE_CONST => format!("const {} = {}", data_str(node, "name", "x"), data_i64(node)),
+        NODE_LIST => format!(
+            "{} = [{}]",
+            data_str(node, "name", "xs"),
+            data_str(node, "items", "")
+        ),
+        NODE_THROW => data_str(node, "message", "…"),
+        NODE_AWAIT => "await".to_string(),
+        NODE_IMPORT => data_str(node, "module", "…"),
+        NODE_STRUCT => format!(
+            "struct {} {{ {} }}",
+            data_str(node, "name", "T"),
+            data_str(node, "fields", "")
+        ),
+        NODE_ENUM => format!(
+            "enum {} {{ {} }}",
+            data_str(node, "name", "E"),
+            data_str(node, "variants", "")
+        ),
         NODE_START => "Entry".to_string(),
         NODE_UI_PAGE | NODE_UI_BUTTON => data_str(node, "title", "…"),
         NODE_UI_LABEL => data_str(node, "text", "…"),
@@ -364,10 +401,7 @@ fn data_i64(node: &Node) -> i64 {
 
 pub(crate) fn switch_case_port_count(node: &Node) -> usize {
     if let Some(cases) = graph_model::data_get_str(&node.data, "cases") {
-        let n = cases
-            .split(',')
-            .filter(|s| !s.trim().is_empty())
-            .count();
+        let n = cases.split(',').filter(|s| !s.trim().is_empty()).count();
         if n >= 2 {
             return n.min(6);
         }

@@ -3,8 +3,21 @@ use serde::{Deserialize, Serialize};
 /// Language-agnostic domain action (lowered to universal IR, then to Rust/Go/etc.).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum DomainAction {
-    Print { message: String },
-    DataStore { name: String, value: ActionValue },
+    Print {
+        message: String,
+    },
+    DataStore {
+        name: String,
+        value: ActionValue,
+    },
+    Const {
+        name: String,
+        value: ActionValue,
+    },
+    ListStore {
+        name: String,
+        items: Vec<ActionValue>,
+    },
     Branch {
         condition: ActionValue,
         then_body: Vec<DomainAction>,
@@ -25,7 +38,9 @@ pub enum DomainAction {
         collection: String,
         body: Vec<DomainAction>,
     },
-    Return { value: Option<ActionValue> },
+    Return {
+        value: Option<ActionValue>,
+    },
     Switch {
         discriminant: ActionValue,
         arms: Vec<SwitchArm>,
@@ -37,9 +52,28 @@ pub enum DomainAction {
         try_body: Vec<DomainAction>,
         catch_body: Vec<DomainAction>,
     },
-    Expr { name: String, value: ActionValue },
-    Async { body: Vec<DomainAction> },
-    DbRead { table: String, into_var: String },
+    Throw {
+        message: String,
+    },
+    Expr {
+        name: String,
+        value: ActionValue,
+    },
+    Async {
+        body: Vec<DomainAction>,
+    },
+    Await {
+        binding: Option<String>,
+    },
+    Call {
+        name: String,
+        args: Vec<ActionValue>,
+        into: Option<String>,
+    },
+    DbRead {
+        table: String,
+        into_var: String,
+    },
     Module {
         name: String,
         actions: Vec<DomainAction>,

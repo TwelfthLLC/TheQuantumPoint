@@ -195,6 +195,60 @@ const CORE_CATALOG: &[NodeCatalogEntry] = &[
         keywords: "async await",
         color_fn: |p| p.accent,
     },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_FUNCTION,
+        title: "Function",
+        keywords: "function fn def",
+        color_fn: |p| p.assign,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_CALL,
+        title: "Call",
+        keywords: "call invoke",
+        color_fn: |p| p.log,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_CONST,
+        title: "Const",
+        keywords: "const immutable",
+        color_fn: |p| p.assign,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_LIST,
+        title: "List",
+        keywords: "list array vec",
+        color_fn: |p| p.warn,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_THROW,
+        title: "Throw",
+        keywords: "throw error panic",
+        color_fn: |p| p.danger,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_AWAIT,
+        title: "Await",
+        keywords: "await async yield",
+        color_fn: |p| p.accent,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_IMPORT,
+        title: "Import",
+        keywords: "import module use",
+        color_fn: |p| p.success,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_STRUCT,
+        title: "Struct",
+        keywords: "struct record type",
+        color_fn: |p| p.if_node,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_ENUM,
+        title: "Enum",
+        keywords: "enum variant",
+        color_fn: |p| p.if_node,
+    },
 ];
 
 const BRIDGE_CATALOG: &[NodeCatalogEntry] = &[

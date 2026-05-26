@@ -1,25 +1,14 @@
+use super::{graph_file_err, paths, unix_now, ProjectMeta, ProjectStoreError};
 use crate::graph_files::{
     self, create_graph_file, ensure_default_graphs_layout, list_graph_files, load_graph_at,
-    read_entry_graph, save_graph_at, set_entry_graph, GraphFileError, GraphFileInfo,
+    read_entry_graph, save_graph_at, set_entry_graph, GraphFileInfo,
 };
 use graph_model::{
     decode_registry_meta, decode_registry_meta_legacy_json, registry_meta_to_bytes, Project,
     RegistryMeta, REGISTRY_META_FILE,
 };
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProjectMeta {
-    pub id: String,
-    pub name: String,
-    pub updated_at: u64,
-    pub node_count: usize,
-    /// Loyiha fayllari joylashgan papka (mutlaq yo‘l)
-    pub folder: PathBuf,
-}
 
 #[derive(Clone)]
 pub struct ProjectStore {
@@ -129,7 +118,7 @@ impl ProjectStore {
     ) -> Result<ProjectMeta, ProjectStoreError> {
         self.ensure().map_err(ProjectStoreError::Io)?;
         let folder = self.normalize_folder(folder)?;
-        let folder = resolve_project_directory(&folder, name);
+        let folder = paths::resolve_project_directory(&folder, name);
         if folder.exists() && graph_files::is_project_root(&folder) {
             return Err(ProjectStoreError::FolderExists(folder));
         }
@@ -356,7 +345,7 @@ impl ProjectStore {
     }
 
     fn unique_id(&self, name: &str) -> Result<String, ProjectStoreError> {
-        let base = slugify(name);
+        let base = paths::slugify(name);
         let base = if base.is_empty() {
             "loyiha".to_string()
         } else {
@@ -370,142 +359,4 @@ impl ProjectStore {
         }
         Ok(candidate)
     }
-}
-
-pub fn hello_template(workspace: &Path, name: &str) -> Option<Project> {
-    let path = workspace.join("examples/hello-rust/graphs/main.qp");
-    let raw = fs::read(path).ok()?;
-    let mut project = Project::from_qp_bytes(&raw).ok()?;
-    project.name = name.to_string();
-    Some(project)
-}
-
-/// Foydalanuvchi `Documents` papkasi (Windows/macOS/Linux fallback).
-pub fn user_documents_dir() -> PathBuf {
-    if let Some(profile) = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")) {
-        let docs = PathBuf::from(profile).join("Documents");
-        if docs.is_dir() {
-            return docs;
-        }
-    }
-    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
-}
-
-/// Loyiha papkasi nomi (masalan `Yangi loyiha`) — noto‘g‘ri belgilar olib tashlanadi.
-pub fn folder_name_from_project(name: &str) -> String {
-    const INVALID: &[char] = &['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
-    let trimmed = name.trim();
-    if trimmed.is_empty() {
-        return "loyiha".to_string();
-    }
-    let mut out = String::with_capacity(trimmed.len());
-    for c in trimmed.chars() {
-        if c == '\0' || INVALID.contains(&c) {
-            continue;
-        }
-        out.push(c);
-    }
-    let out = out.trim().trim_end_matches('.').to_string();
-    if out.is_empty() {
-        "loyiha".to_string()
-    } else {
-        out
-    }
-}
-
-/// `Documents` + loyiha nomi yoki tanlangan ota-ona + loyiha nomi.
-pub fn default_projects_folder(_workspace: &Path, name: &str) -> PathBuf {
-    user_documents_dir().join(folder_name_from_project(name))
-}
-
-/// Tanlangan yo‘l ota-ona bo‘lsa, ichiga loyiha nomi bilan papka qo‘shiladi.
-pub fn resolve_project_directory(parent_or_root: &Path, project_name: &str) -> PathBuf {
-    let folder_name = folder_name_from_project(project_name);
-    if graph_files::is_project_root(parent_or_root) {
-        return parent_or_root.to_path_buf();
-    }
-    if parent_or_root
-        .file_name()
-        .and_then(|n| n.to_str())
-        .is_some_and(|n| n.eq_ignore_ascii_case(folder_name.as_str()))
-    {
-        return parent_or_root.to_path_buf();
-    }
-    parent_or_root.join(&folder_name)
-}
-
-#[cfg(test)]
-mod resolve_tests {
-    use super::*;
-    use std::path::Path;
-
-    #[test]
-    fn appends_project_folder_under_parent() {
-        let parent = Path::new("C:/Users/Me/Documents");
-        let got = resolve_project_directory(parent, "Yangi loyiha");
-        assert_eq!(got, parent.join("Yangi loyiha"));
-    }
-
-    #[test]
-    fn keeps_path_when_already_named() {
-        let root = Path::new("C:/Users/Me/Documents/Yangi loyiha");
-        let got = resolve_project_directory(root, "Yangi loyiha");
-        assert_eq!(got, root);
-    }
-}
-
-fn slugify(name: &str) -> String {
-    let mut out = String::new();
-    let mut last_dash = false;
-    for c in name.chars() {
-        let ch = if c.is_ascii_alphanumeric() {
-            c.to_ascii_lowercase()
-        } else if c == ' ' || c == '-' || c == '_' {
-            '-'
-        } else {
-            continue;
-        };
-        if ch == '-' {
-            if !last_dash && !out.is_empty() {
-                out.push('-');
-                last_dash = true;
-            }
-        } else {
-            out.push(ch);
-            last_dash = false;
-        }
-    }
-    out.trim_matches('-').to_string()
-}
-
-fn graph_file_err(e: GraphFileError) -> ProjectStoreError {
-    match e {
-        GraphFileError::Io(err) => ProjectStoreError::Io(err),
-        GraphFileError::NotFound(s) => ProjectStoreError::NotFound(s),
-        GraphFileError::InvalidPath(s) => ProjectStoreError::InvalidPath(s),
-        GraphFileError::Parse(e) => ProjectStoreError::GraphFile(e),
-    }
-}
-
-fn unix_now() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0)
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum ProjectStoreError {
-    #[error("io: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("graph file: {0}")]
-    GraphFile(#[from] graph_model::GraphFileParseError),
-    #[error("project not found: {0}")]
-    NotFound(String),
-    #[error("invalid project id: {0}")]
-    InvalidId(String),
-    #[error("invalid folder path: {0}")]
-    InvalidPath(String),
-    #[error("folder already contains a Quantum Point project: {path}", path = .0.display())]
-    FolderExists(PathBuf),
 }

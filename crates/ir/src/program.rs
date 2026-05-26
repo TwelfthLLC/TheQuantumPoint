@@ -7,9 +7,34 @@ use crate::ValueExpr;
 pub struct Program {
     pub name: String,
     pub actions: Vec<Action>,
-    /// Set when the graph contains `async` blocks (emit adds tokio).
+    #[serde(default)]
+    pub functions: Vec<FunctionDef>,
+    #[serde(default)]
+    pub structs: Vec<StructDef>,
+    #[serde(default)]
+    pub enums: Vec<EnumDef>,
+    /// Set when the graph contains `async` / `await` (emit adds tokio).
     #[serde(default)]
     pub needs_async_runtime: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FunctionDef {
+    pub name: String,
+    pub params: Vec<String>,
+    pub body: Vec<Action>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StructDef {
+    pub name: String,
+    pub fields: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnumDef {
+    pub name: String,
+    pub variants: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,6 +45,14 @@ pub enum Action {
     DataStore {
         name: String,
         value: ValueExpr,
+    },
+    Const {
+        name: String,
+        value: ValueExpr,
+    },
+    ListStore {
+        name: String,
+        items: Vec<ValueExpr>,
     },
     Branch {
         condition: ValueExpr,
@@ -55,12 +88,23 @@ pub enum Action {
         try_body: Vec<Action>,
         catch_body: Vec<Action>,
     },
+    Throw {
+        message: String,
+    },
     Expr {
         name: String,
         value: ValueExpr,
     },
     Async {
         body: Vec<Action>,
+    },
+    Await {
+        binding: Option<String>,
+    },
+    Call {
+        name: String,
+        args: Vec<ValueExpr>,
+        into: Option<String>,
     },
     DbRead {
         table: String,
@@ -78,14 +122,14 @@ pub struct SwitchArm {
     pub body: Vec<Action>,
 }
 
-/// True when any action tree contains `Action::Async`.
+/// True when any action tree contains `Action::Async` or `Action::Await`.
 pub fn actions_need_async(actions: &[Action]) -> bool {
     actions.iter().any(action_needs_async)
 }
 
 fn action_needs_async(action: &Action) -> bool {
     match action {
-        Action::Async { .. } => true,
+        Action::Async { .. } | Action::Await { .. } => true,
         Action::Module { actions, .. } => actions_need_async(actions),
         Action::Branch {
             then_body,
@@ -96,14 +140,8 @@ fn action_needs_async(action: &Action) -> bool {
             actions_need_async(body)
         }
         Action::Switch {
-            arms,
-            default_body,
-            ..
-        } => {
-            arms.iter()
-                .any(|a| actions_need_async(&a.body))
-                || actions_need_async(default_body)
-        }
+            arms, default_body, ..
+        } => arms.iter().any(|a| actions_need_async(&a.body)) || actions_need_async(default_body),
         Action::Try {
             try_body,
             catch_body,

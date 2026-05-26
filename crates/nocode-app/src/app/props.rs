@@ -1,8 +1,9 @@
 use graph_model::{
     data_get_i64, data_get_str, data_set_str, DataValue, Node, NODE_API_QUERY, NODE_API_ROUTE,
-    NODE_ASSIGN, NODE_DB_READ, NODE_EMIT_UI, NODE_EXPR, NODE_FOR, NODE_IF, NODE_LOG, NODE_RETURN,
-    NODE_FOREACH, NODE_SUBGRAPH, NODE_SWITCH, NODE_UI_BUTTON, NODE_UI_EVENT, NODE_UI_INPUT,
-    NODE_UI_LABEL, NODE_UI_PAGE, NODE_WHILE,
+    NODE_ASSIGN, NODE_AWAIT, NODE_CALL, NODE_CONST, NODE_DB_READ, NODE_EMIT_UI, NODE_ENUM,
+    NODE_EXPR, NODE_FOR, NODE_FOREACH, NODE_FUNCTION, NODE_IF, NODE_IMPORT, NODE_LIST, NODE_LOG,
+    NODE_RETURN, NODE_STRUCT, NODE_SUBGRAPH, NODE_SWITCH, NODE_THROW, NODE_UI_BUTTON,
+    NODE_UI_EVENT, NODE_UI_INPUT, NODE_UI_LABEL, NODE_UI_PAGE, NODE_WHILE,
 };
 
 use super::NoCodeApp;
@@ -35,14 +36,21 @@ impl NoCodeApp {
         self.props_for_var = get_str(n, "var");
         self.props_collection = get_str(n, "collection");
         self.props_item_var = get_str(n, "item_var");
+        self.props_params = get_str(n, "params");
+        self.props_args = get_str(n, "args");
+        self.props_fields = get_str(n, "fields");
+        self.props_variants = get_str(n, "variants");
+        self.props_items = get_str(n, "items");
+        self.props_into = get_str(n, "into");
         self.props_label = match n.kind.as_str() {
             NODE_UI_LABEL => get_str(n, "text"),
             NODE_UI_INPUT => get_str(n, "placeholder"),
             NODE_UI_EVENT => get_str(n, "event"),
             NODE_API_QUERY => get_str(n, "url"),
             NODE_DB_READ => get_str(n, "table"),
-            NODE_SUBGRAPH => get_str(n, "module"),
+            NODE_SUBGRAPH | NODE_IMPORT => get_str(n, "module"),
             NODE_EMIT_UI => get_str(n, "signal"),
+            NODE_THROW => get_str(n, "message"),
             NODE_UI_PAGE | NODE_UI_BUTTON => get_str(n, "title"),
             NODE_API_ROUTE => get_str(n, "path"),
             _ => String::new(),
@@ -66,7 +74,8 @@ impl NoCodeApp {
                 set_str(n, "var", &self.props_for_var);
                 let from: i64 = self.props_for_from.parse().unwrap_or(0);
                 let to: i64 = self.props_for_to.parse().unwrap_or(0);
-                n.data.insert("from".to_string(), DataValue::typed_i64(from));
+                n.data
+                    .insert("from".to_string(), DataValue::typed_i64(from));
                 n.data.insert("to".to_string(), DataValue::typed_i64(to));
             }
             NODE_FOREACH => {
@@ -98,8 +107,36 @@ impl NoCodeApp {
             NODE_DB_READ => {
                 set_str(n, "table", &self.props_label);
             }
-            NODE_SUBGRAPH => set_str(n, "module", &self.props_label),
+            NODE_SUBGRAPH | NODE_IMPORT => set_str(n, "module", &self.props_label),
             NODE_EMIT_UI => set_str(n, "signal", &self.props_label),
+            NODE_FUNCTION => {
+                set_str(n, "name", &self.props_assign_name);
+                set_str(n, "params", &self.props_params);
+            }
+            NODE_CALL => {
+                set_str(n, "name", &self.props_assign_name);
+                set_str(n, "args", &self.props_args);
+                set_str(n, "into", &self.props_into);
+            }
+            NODE_CONST => {
+                set_str(n, "name", &self.props_assign_name);
+                let v: i64 = self.props_assign_value.parse().unwrap_or(0);
+                n.data.insert("value".to_string(), DataValue::typed_i64(v));
+            }
+            NODE_LIST => {
+                set_str(n, "name", &self.props_assign_name);
+                set_str(n, "items", &self.props_items);
+            }
+            NODE_THROW => set_str(n, "message", &self.props_message),
+            NODE_AWAIT => set_str(n, "into", &self.props_into),
+            NODE_STRUCT => {
+                set_str(n, "name", &self.props_assign_name);
+                set_str(n, "fields", &self.props_fields);
+            }
+            NODE_ENUM => {
+                set_str(n, "name", &self.props_assign_name);
+                set_str(n, "variants", &self.props_variants);
+            }
             _ => {}
         }
         self.dirty = true;

@@ -36,16 +36,17 @@
 
 | Crate | Role |
 |-------|------|
-| `graph-model` | `.qp` codec, `DataValue`, `SubGraphRef` |
+| `graph-model` | `.qp` codec (`format/{graph,manifest,registry,header}`), `DataValue`, `SubGraphRef` |
 | `qp-domain` | Domains, `DomainAction`, ports |
 | `qp-graph-store` | Graph store, dirty flags, subgraph refs |
 | `ir` | `Action`, `ValueExpr` (no raw target code) |
-| `compiler` | Lowering + `CompileCache` incremental |
-| `emit-rust` | Core → Rust |
+| `qp-runtime` | Run preview (`exec`, `value`, `mock`) |
+| `compiler` | Lowering + `CompileCache` (`validate`, `lower`, `ir_map`, `declarations`, …) |
+| `emit-rust` | Core → Rust (`decls`, `actions`) |
 | `emit-view` | View → UI spec |
 | `emit-bridge` | Bridge → routes manifest |
-| `nocode-core` | Projects, pipeline, sandbox |
-| `nocode-app` | egui IDE |
+| `nocode-core` | `projects/{store,paths}`, `pipeline/{check,build,artifacts,compile}`, sandbox |
+| `nocode-app` | egui IDE (`app/studio/*`, `graph/editor/{mod,canvas}` + selection/viewport/picker) |
 
 ## `.qp` format
 
