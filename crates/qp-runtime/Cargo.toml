@@ -1,0 +1,8 @@
+[package]
+name = "qp-runtime"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ir = { path = "../ir" }
+thiserror = "2"

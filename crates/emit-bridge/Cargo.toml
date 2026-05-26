@@ -1,0 +1,10 @@
+[package]
+name = "emit-bridge"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+graph-model = { path = "../graph-model" }
+qp-domain = { path = "../qp-domain" }
+thiserror = "2"

@@ -1,0 +1,7 @@
+[package]
+name = "emit-rust"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ir = { path = "../ir" }

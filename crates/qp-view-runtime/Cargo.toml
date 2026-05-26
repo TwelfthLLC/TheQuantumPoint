@@ -1,0 +1,9 @@
+[package]
+name = "qp-view-runtime"
+version.workspace = true
+edition.workspace = true
+description = "Quantum Point View layer — egui runtime preview"
+
+[dependencies]
+graph-model = { path = "../graph-model" }
+egui = "0.31"

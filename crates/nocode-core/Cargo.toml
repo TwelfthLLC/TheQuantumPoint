@@ -1,0 +1,17 @@
+[package]
+name = "nocode-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+compiler = { path = "../compiler" }
+emit-bridge = { path = "../emit-bridge" }
+emit-rust = { path = "../emit-rust" }
+emit-view = { path = "../emit-view" }
+emit-wasm = { path = "../emit-wasm" }
+graph-model = { path = "../graph-model" }
+qp-domain = { path = "../qp-domain" }
+qp-runtime = { path = "../qp-runtime" }
+ir = { path = "../ir" }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"

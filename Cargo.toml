@@ -1,0 +1,25 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/graph-model",
+    "crates/qp-domain",
+    "crates/qp-graph-store",
+    "crates/ir",
+    "crates/compiler",
+    "crates/emit-rust",
+    "crates/emit-view",
+    "crates/emit-bridge",
+    "crates/emit-wasm",
+    "crates/qp-runtime",
+    "crates/qp-view-runtime",
+    "crates/nocode-core",
+    "crates/nocode-app",
+    "crates/nocode-cli",
+]
+default-members = ["crates/nocode-app"]
+
+[workspace.package]
+# Crate semver (Cargo). Product release label: see VERSION / README → 0.0.0.1
+version = "0.0.1"
+edition = "2021"
+license = "MIT"

@@ -1,0 +1,240 @@
+use egui::{Color32, Pos2, Rect, Sense, Stroke, Ui, Vec2};
+use graph_model::{
+    Node, NODE_API_QUERY, NODE_API_ROUTE, NODE_ASSIGN, NODE_DB_READ, NODE_EMIT_UI, NODE_IF,
+    NODE_LOG, NODE_START, NODE_SUBGRAPH, NODE_UI_BUTTON, NODE_UI_EVENT, NODE_UI_INPUT,
+    NODE_UI_LABEL, NODE_UI_PAGE,
+};
+
+use super::edges::handle_color;
+use super::editor::GraphEditor;
+use super::types::{HandleKind, NodeAction, NODE_W};
+use crate::theme::Palette;
+
+pub(crate) fn scaled_font(size: f32, z: f32) -> egui::FontId {
+    egui::FontId::proportional((size * z).clamp(8.0, 22.0))
+}
+
+pub(crate) fn paint_node(
+    ui: &mut Ui,
+    painter: &egui::Painter,
+    editor: &GraphEditor,
+    node: &Node,
+    rect: Rect,
+    selected: bool,
+    palette: &Palette,
+) -> NodeAction {
+    let z = rect.width() / NODE_W;
+    let color = node_color(node, palette);
+    let corner = (10.0 * z).max(2.0);
+    let stroke = if selected {
+        Stroke::new((2.5 * z).max(1.0), palette.accent)
+    } else {
+        Stroke::new((1.5 * z).max(1.0), color)
+    };
+    painter.rect_filled(rect, corner, palette.surface);
+    painter.rect_stroke(rect, corner, stroke, egui::StrokeKind::Outside);
+
+    let title_h = 24.0 * z;
+    let title_rect = Rect::from_min_size(rect.min, Vec2::new(rect.width(), title_h));
+    painter.rect_filled(title_rect, corner, color);
+    let pad = 10.0 * z;
+    painter.text(
+        title_rect.left_top() + Vec2::new(pad, 5.0 * z),
+        egui::Align2::LEFT_TOP,
+        node_title(node),
+        scaled_font(13.0, z),
+        Color32::BLACK,
+    );
+
+    let body = node_summary(node);
+    painter.text(
+        rect.left_top() + Vec2::new(pad, title_h + 6.0 * z),
+        egui::Align2::LEFT_TOP,
+        body,
+        scaled_font(12.0, z),
+        palette.muted,
+    );
+
+    let mut action = NodeAction::None;
+    let drag_rect = rect.shrink2(Vec2::splat((3.0 * z).max(1.0)));
+    let drag_resp = ui.allocate_rect(drag_rect, Sense::click_and_drag());
+    if drag_resp.clicked() && !drag_resp.dragged() {
+        let additive = ui.input(|i| i.modifiers.shift);
+        action = NodeAction::Select { additive };
+    }
+    if drag_resp.drag_started_by(egui::PointerButton::Primary) {
+        if let Some(pos) = drag_resp.interact_pointer_pos() {
+            let w = editor.screen_to_world(pos);
+            action = NodeAction::DragStart {
+                offset: Vec2::new(w.x - node.position.x as f32, w.y - node.position.y as f32),
+            };
+        }
+    }
+
+    for (kind, hit) in handle_hit_zones(node, rect, z) {
+        let center = hit.center();
+        paint_port_stub(painter, rect, center, kind, color, z);
+        let r = ui.allocate_rect(hit, Sense::click_and_drag());
+        paint_handle(painter, center, kind, color, palette, z);
+        if r.secondary_clicked() {
+            action = NodeAction::HandleDisconnect(kind);
+        } else if r.clicked() || r.drag_started_by(egui::PointerButton::Primary) {
+            action = NodeAction::HandleClick(kind);
+        }
+    }
+
+    action
+}
+
+pub(crate) fn handle_hit_zones(node: &Node, rect: Rect, z: f32) -> Vec<(HandleKind, Rect)> {
+    let s = (16.0 * z).max(8.0);
+    let mut out = Vec::new();
+    match node.kind.as_str() {
+        NODE_START => {
+            out.push((
+                HandleKind::ExecOut,
+                handle_rect(Pos2::new(rect.right(), rect.center().y), s),
+            ));
+        }
+        NODE_IF => {
+            out.push((
+                HandleKind::ExecIn,
+                handle_rect(Pos2::new(rect.left(), rect.center().y), s),
+            ));
+            out.push((
+                HandleKind::TrueOut,
+                handle_rect(Pos2::new(rect.right(), rect.top() + rect.height() * 0.3), s),
+            ));
+            out.push((
+                HandleKind::FalseOut,
+                handle_rect(Pos2::new(rect.right(), rect.top() + rect.height() * 0.7), s),
+            ));
+            out.push((
+                HandleKind::DoneOut,
+                handle_rect(Pos2::new(rect.center().x, rect.bottom()), s),
+            ));
+        }
+        _ => {
+            out.push((
+                HandleKind::ExecIn,
+                handle_rect(Pos2::new(rect.left(), rect.center().y), s),
+            ));
+            out.push((
+                HandleKind::ExecOut,
+                handle_rect(Pos2::new(rect.right(), rect.center().y), s),
+            ));
+        }
+    }
+    out
+}
+
+fn handle_rect(center: Pos2, size: f32) -> Rect {
+    Rect::from_center_size(center, Vec2::splat(size))
+}
+
+fn paint_port_stub(
+    painter: &egui::Painter,
+    node_rect: Rect,
+    center: Pos2,
+    kind: HandleKind,
+    color: Color32,
+    z: f32,
+) {
+    let stub = match kind {
+        HandleKind::ExecIn => [Pos2::new(node_rect.left(), center.y), center],
+        HandleKind::ExecOut | HandleKind::TrueOut | HandleKind::FalseOut => {
+            [center, Pos2::new(node_rect.right(), center.y)]
+        }
+        HandleKind::DoneOut => [center, Pos2::new(center.x, node_rect.bottom())],
+    };
+    painter.line_segment(
+        stub,
+        Stroke::new((2.0 * z).max(1.0), color.gamma_multiply(0.55)),
+    );
+}
+
+fn paint_handle(
+    painter: &egui::Painter,
+    center: Pos2,
+    kind: HandleKind,
+    node_color: Color32,
+    palette: &Palette,
+    z: f32,
+) {
+    let ring = handle_color(kind, palette);
+    let r = (7.0 * z).max(3.0);
+    let inner = (3.0 * z).max(1.5);
+    painter.circle_filled(center, r, ring);
+    painter.circle_stroke(center, r, Stroke::new((2.0 * z).max(1.0), Color32::WHITE));
+    painter.circle_filled(center, inner, node_color);
+}
+
+fn node_color(node: &Node, p: &Palette) -> Color32 {
+    match node.kind.as_str() {
+        NODE_START => p.start,
+        NODE_LOG => p.log,
+        NODE_ASSIGN => p.assign,
+        NODE_IF => p.if_node,
+        NODE_UI_PAGE => p.accent,
+        NODE_UI_BUTTON => p.success,
+        NODE_UI_LABEL => p.log,
+        NODE_UI_INPUT => p.warn,
+        NODE_UI_EVENT => p.if_node,
+        NODE_API_ROUTE => p.accent,
+        NODE_API_QUERY => p.warn,
+        NODE_DB_READ => p.success,
+        NODE_EMIT_UI => p.danger,
+        _ => p.muted,
+    }
+}
+
+fn node_title(node: &Node) -> &'static str {
+    match node.kind.as_str() {
+        NODE_START => "Start",
+        NODE_LOG => "Log",
+        NODE_ASSIGN => "Assign",
+        NODE_IF => "If",
+        NODE_UI_PAGE => "Page",
+        NODE_UI_BUTTON => "Button",
+        NODE_UI_LABEL => "Label",
+        NODE_UI_INPUT => "Input",
+        NODE_UI_EVENT => "Event",
+        NODE_API_ROUTE => "API Route",
+        NODE_API_QUERY => "API Query",
+        NODE_DB_READ => "DB Read",
+        NODE_SUBGRAPH => "Subgraph",
+        NODE_EMIT_UI => "Emit UI",
+        _ => "Node",
+    }
+}
+
+fn node_summary(node: &Node) -> String {
+    match node.kind.as_str() {
+        NODE_LOG => data_str(node, "message", "…"),
+        NODE_ASSIGN => format!("{} = {}", data_str(node, "name", "x"), data_i64(node)),
+        NODE_IF => data_str(node, "condition", "true"),
+        NODE_START => "Kirish".to_string(),
+        NODE_UI_PAGE | NODE_UI_BUTTON => data_str(node, "title", "…"),
+        NODE_UI_LABEL => data_str(node, "text", "…"),
+        NODE_UI_INPUT => data_str(node, "placeholder", "…"),
+        NODE_UI_EVENT => data_str(node, "event", "…"),
+        NODE_API_ROUTE => data_str(node, "path", "/…"),
+        NODE_API_QUERY => data_str(node, "url", "…"),
+        NODE_DB_READ => data_str(node, "table", "…"),
+        NODE_SUBGRAPH => data_str(node, "module", "…"),
+        NODE_EMIT_UI => data_str(node, "signal", "…"),
+        _ => String::new(),
+    }
+}
+
+fn data_str(node: &Node, key: &str, default: &str) -> String {
+    node.data
+        .get(key)
+        .and_then(|v| v.as_str())
+        .unwrap_or(default)
+        .to_string()
+}
+
+fn data_i64(node: &Node) -> i64 {
+    graph_model::data_get_i64(&node.data, "value").unwrap_or(0)
+}

@@ -1,0 +1,15 @@
+[package]
+name = "nocode-cli"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "nocode"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+graph-model = { path = "../graph-model" }
+nocode-core = { path = "../nocode-core" }
+serde_json = "1"
+thiserror = "2"

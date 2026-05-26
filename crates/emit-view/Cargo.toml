@@ -1,0 +1,11 @@
+[package]
+name = "emit-view"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+graph-model = { path = "../graph-model" }
+qp-domain = { path = "../qp-domain" }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"

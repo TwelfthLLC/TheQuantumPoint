@@ -1,0 +1,23 @@
+[package]
+name = "nocode-app"
+version.workspace = true
+edition.workspace = true
+description = "Quantum Point — native Rust visual IDE"
+default-run = "nocode-app"
+build = "build.rs"
+
+[[bin]]
+name = "nocode-app"
+path = "src/main.rs"
+
+[dependencies]
+nocode-core = { path = "../nocode-core" }
+emit-view = { path = "../emit-view" }
+qp-view-runtime = { path = "../qp-view-runtime" }
+graph-model = { path = "../graph-model" }
+qp-graph-store = { path = "../qp-graph-store" }
+qp-domain = { path = "../qp-domain" }
+eframe = { version = "0.31", default-features = true }
+egui = "0.31"
+image = { version = "0.25", default-features = false, features = ["png"] }
+rfd = "0.15"

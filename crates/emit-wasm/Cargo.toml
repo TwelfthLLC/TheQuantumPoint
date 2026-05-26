@@ -1,0 +1,8 @@
+[package]
+name = "emit-wasm"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+emit-rust = { path = "../emit-rust" }
+ir = { path = "../ir" }
