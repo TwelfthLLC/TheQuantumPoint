@@ -4,7 +4,7 @@ use egui::{
 use graph_model::{
     GraphLayer, NODE_API_QUERY, NODE_API_ROUTE, NODE_ASSIGN, NODE_DB_READ, NODE_EMIT_UI, NODE_IF,
     NODE_LOG, NODE_SUBGRAPH, NODE_UI_BUTTON, NODE_UI_EVENT, NODE_UI_INPUT, NODE_UI_LABEL,
-    NODE_UI_PAGE,
+    NODE_UI_PAGE, NODE_WHILE, NODE_FOR, NODE_FOREACH, NODE_RETURN, NODE_SWITCH, NODE_EXPR,
 };
 
 use super::props::{get_i64, get_str};
@@ -238,9 +238,67 @@ impl NoCodeApp {
                                         self.apply_props_to_selected();
                                     }
                                 }
-                                NODE_IF => {
-                                    ui.label("Shart (Rust)");
+                                NODE_IF | NODE_WHILE => {
+                                    ui.label("Condition");
                                     if ui.text_edit_singleline(&mut self.props_condition).changed() {
+                                        self.apply_props_to_selected();
+                                    }
+                                }
+                                NODE_FOR => {
+                                    ui.label("Variable");
+                                    if ui.text_edit_singleline(&mut self.props_for_var).changed() {
+                                        self.apply_props_to_selected();
+                                    }
+                                    ui.label("From");
+                                    if ui.text_edit_singleline(&mut self.props_for_from).changed() {
+                                        self.apply_props_to_selected();
+                                    }
+                                    ui.label("To");
+                                    if ui.text_edit_singleline(&mut self.props_for_to).changed() {
+                                        self.apply_props_to_selected();
+                                    }
+                                }
+                                NODE_RETURN => {
+                                    ui.label("Return value (optional)");
+                                    if ui.text_edit_singleline(&mut self.props_message).changed() {
+                                        self.apply_props_to_selected();
+                                    }
+                                }
+                                NODE_FOREACH => {
+                                    ui.label("Collection (table)");
+                                    if ui.text_edit_singleline(&mut self.props_collection).changed() {
+                                        self.apply_props_to_selected();
+                                    }
+                                    ui.label("Item variable");
+                                    if ui.text_edit_singleline(&mut self.props_item_var).changed() {
+                                        self.apply_props_to_selected();
+                                    }
+                                }
+                                NODE_SWITCH => {
+                                    ui.label("Variable");
+                                    if ui.text_edit_singleline(&mut self.props_variable).changed() {
+                                        self.apply_props_to_selected();
+                                    }
+                                    ui.label("Cases (comma-separated, maps to case1..caseN ports)");
+                                    if ui.text_edit_singleline(&mut self.props_cases).changed() {
+                                        self.apply_props_to_selected();
+                                    }
+                                    ui.label("Case 1 label (legacy)");
+                                    if ui.text_edit_singleline(&mut self.props_case1).changed() {
+                                        self.apply_props_to_selected();
+                                    }
+                                    ui.label("Case 2 label (legacy)");
+                                    if ui.text_edit_singleline(&mut self.props_case2).changed() {
+                                        self.apply_props_to_selected();
+                                    }
+                                }
+                                NODE_EXPR => {
+                                    ui.label("Target variable");
+                                    if ui.text_edit_singleline(&mut self.props_assign_name).changed() {
+                                        self.apply_props_to_selected();
+                                    }
+                                    ui.label("Expression");
+                                    if ui.text_edit_singleline(&mut self.props_expression).changed() {
                                         self.apply_props_to_selected();
                                     }
                                 }

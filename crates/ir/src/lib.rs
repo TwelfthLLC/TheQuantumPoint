@@ -4,4 +4,4 @@ mod expr;
 mod program;
 
 pub use expr::{emit_value_expr, sanitize_ident, BinOp, CmpOp, ValueExpr};
-pub use program::{Action, Program};
+pub use program::{actions_need_async, Action, Program, SwitchArm};

@@ -1,8 +1,10 @@
 use egui::{Color32, Pos2, Rect, Sense, Stroke, Ui, Vec2};
 use graph_model::{
-    Node, NODE_API_QUERY, NODE_API_ROUTE, NODE_ASSIGN, NODE_DB_READ, NODE_EMIT_UI, NODE_IF,
-    NODE_LOG, NODE_START, NODE_SUBGRAPH, NODE_UI_BUTTON, NODE_UI_EVENT, NODE_UI_INPUT,
-    NODE_UI_LABEL, NODE_UI_PAGE,
+    Node, NODE_API_QUERY, NODE_API_ROUTE, NODE_ASSIGN, NODE_ASYNC, NODE_BREAK, NODE_CONTINUE,
+    NODE_DB_READ, NODE_EMIT_UI, NODE_EXPR, NODE_FOR, NODE_FOREACH, NODE_IF, NODE_LOG, NODE_RETURN,
+    NODE_START,
+    NODE_SUBGRAPH, NODE_SWITCH, NODE_TRY, NODE_UI_BUTTON, NODE_UI_EVENT, NODE_UI_INPUT,
+    NODE_UI_LABEL, NODE_UI_PAGE, NODE_WHILE,
 };
 
 use super::edges::handle_color;
@@ -97,21 +99,69 @@ pub(crate) fn handle_hit_zones(node: &Node, rect: Rect, z: f32) -> Vec<(HandleKi
             ));
         }
         NODE_IF => {
+            push_if_ports(&mut out, rect, s);
+        }
+        NODE_SWITCH => {
+            out.push((
+                HandleKind::ExecIn,
+                handle_rect(Pos2::new(rect.left(), rect.center().y), s),
+            ));
+            let n = switch_case_port_count(node);
+            for i in 0..n {
+                let y = rect.top() + rect.height() * ((i as f32 + 1.0) / (n as f32 + 2.0));
+                out.push((
+                    super::edges::case_handle_from_index(i),
+                    handle_rect(Pos2::new(rect.right(), y), s),
+                ));
+            }
+            out.push((
+                HandleKind::DefaultOut,
+                handle_rect(
+                    Pos2::new(rect.right(), rect.top() + rect.height() * (n as f32 + 1.0) / (n as f32 + 2.0)),
+                    s,
+                ),
+            ));
+            out.push((
+                HandleKind::DoneOut,
+                handle_rect(Pos2::new(rect.center().x, rect.bottom()), s),
+            ));
+        }
+        NODE_TRY => {
             out.push((
                 HandleKind::ExecIn,
                 handle_rect(Pos2::new(rect.left(), rect.center().y), s),
             ));
             out.push((
-                HandleKind::TrueOut,
+                HandleKind::TryOut,
                 handle_rect(Pos2::new(rect.right(), rect.top() + rect.height() * 0.3), s),
             ));
             out.push((
-                HandleKind::FalseOut,
+                HandleKind::CatchOut,
                 handle_rect(Pos2::new(rect.right(), rect.top() + rect.height() * 0.7), s),
             ));
             out.push((
                 HandleKind::DoneOut,
                 handle_rect(Pos2::new(rect.center().x, rect.bottom()), s),
+            ));
+        }
+        NODE_WHILE | NODE_FOR | NODE_FOREACH | NODE_ASYNC => {
+            out.push((
+                HandleKind::ExecIn,
+                handle_rect(Pos2::new(rect.left(), rect.center().y), s),
+            ));
+            out.push((
+                HandleKind::BodyOut,
+                handle_rect(Pos2::new(rect.right(), rect.top() + rect.height() * 0.35), s),
+            ));
+            out.push((
+                HandleKind::DoneOut,
+                handle_rect(Pos2::new(rect.center().x, rect.bottom()), s),
+            ));
+        }
+        NODE_RETURN => {
+            out.push((
+                HandleKind::ExecIn,
+                handle_rect(Pos2::new(rect.left(), rect.center().y), s),
             ));
         }
         _ => {
@@ -132,6 +182,31 @@ fn handle_rect(center: Pos2, size: f32) -> Rect {
     Rect::from_center_size(center, Vec2::splat(size))
 }
 
+fn push_if_ports(out: &mut Vec<(HandleKind, Rect)>, rect: Rect, s: f32) {
+    out.push((
+        HandleKind::ExecIn,
+        handle_rect(Pos2::new(rect.left(), rect.center().y), s),
+    ));
+    out.push((
+        HandleKind::TrueOut,
+        handle_rect(
+            Pos2::new(rect.right(), rect.top() + rect.height() * 0.3),
+            s,
+        ),
+    ));
+    out.push((
+        HandleKind::FalseOut,
+        handle_rect(
+            Pos2::new(rect.right(), rect.top() + rect.height() * 0.7),
+            s,
+        ),
+    ));
+    out.push((
+        HandleKind::DoneOut,
+        handle_rect(Pos2::new(rect.center().x, rect.bottom()), s),
+    ));
+}
+
 fn paint_port_stub(
     painter: &egui::Painter,
     node_rect: Rect,
@@ -142,9 +217,19 @@ fn paint_port_stub(
 ) {
     let stub = match kind {
         HandleKind::ExecIn => [Pos2::new(node_rect.left(), center.y), center],
-        HandleKind::ExecOut | HandleKind::TrueOut | HandleKind::FalseOut => {
-            [center, Pos2::new(node_rect.right(), center.y)]
-        }
+        HandleKind::ExecOut
+        | HandleKind::TrueOut
+        | HandleKind::FalseOut
+        | HandleKind::BodyOut
+        | HandleKind::TryOut
+        | HandleKind::Case1Out
+        | HandleKind::Case2Out
+        | HandleKind::Case3Out
+        | HandleKind::Case4Out
+        | HandleKind::Case5Out
+        | HandleKind::Case6Out
+        | HandleKind::DefaultOut
+        | HandleKind::CatchOut => [center, Pos2::new(node_rect.right(), center.y)],
         HandleKind::DoneOut => [center, Pos2::new(center.x, node_rect.bottom())],
     };
     painter.line_segment(
@@ -174,7 +259,10 @@ fn node_color(node: &Node, p: &Palette) -> Color32 {
         NODE_START => p.start,
         NODE_LOG => p.log,
         NODE_ASSIGN => p.assign,
-        NODE_IF => p.if_node,
+        NODE_IF | NODE_WHILE | NODE_FOR | NODE_FOREACH | NODE_SWITCH => p.if_node,
+        NODE_RETURN | NODE_BREAK => p.danger,
+        NODE_CONTINUE | NODE_ASYNC => p.accent,
+        NODE_TRY | NODE_EXPR => p.warn,
         NODE_UI_PAGE => p.accent,
         NODE_UI_BUTTON => p.success,
         NODE_UI_LABEL => p.log,
@@ -194,6 +282,16 @@ fn node_title(node: &Node) -> &'static str {
         NODE_LOG => "Log",
         NODE_ASSIGN => "Assign",
         NODE_IF => "If",
+        NODE_WHILE => "While",
+        NODE_FOR => "For",
+        NODE_FOREACH => "Foreach",
+        NODE_RETURN => "Return",
+        NODE_SWITCH => "Switch",
+        NODE_BREAK => "Break",
+        NODE_CONTINUE => "Continue",
+        NODE_TRY => "Try",
+        NODE_EXPR => "Expr",
+        NODE_ASYNC => "Async",
         NODE_UI_PAGE => "Page",
         NODE_UI_BUTTON => "Button",
         NODE_UI_LABEL => "Label",
@@ -212,8 +310,33 @@ fn node_summary(node: &Node) -> String {
     match node.kind.as_str() {
         NODE_LOG => data_str(node, "message", "…"),
         NODE_ASSIGN => format!("{} = {}", data_str(node, "name", "x"), data_i64(node)),
-        NODE_IF => data_str(node, "condition", "true"),
-        NODE_START => "Kirish".to_string(),
+        NODE_IF | NODE_WHILE => data_str(node, "condition", "true"),
+        NODE_FOR => format!(
+            "{} = {}..{}",
+            data_str(node, "var", "i"),
+            graph_model::data_get_i64(&node.data, "from").unwrap_or(0),
+            graph_model::data_get_i64(&node.data, "to").unwrap_or(0)
+        ),
+        NODE_FOREACH => format!(
+            "{} in {}",
+            data_str(node, "item_var", "item"),
+            data_str(node, "collection", "users")
+        ),
+        NODE_RETURN => data_str(node, "value", ""),
+        NODE_SWITCH => {
+            let cases = graph_model::data_get_str(&node.data, "cases")
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| {
+                    format!(
+                        "{},{}",
+                        data_str(node, "case1", "1"),
+                        data_str(node, "case2", "2")
+                    )
+                });
+            format!("{} match [{}]", data_str(node, "variable", "x"), cases)
+        }
+        NODE_EXPR => data_str(node, "expression", "a + b"),
+        NODE_START => "Entry".to_string(),
         NODE_UI_PAGE | NODE_UI_BUTTON => data_str(node, "title", "…"),
         NODE_UI_LABEL => data_str(node, "text", "…"),
         NODE_UI_INPUT => data_str(node, "placeholder", "…"),
@@ -237,4 +360,17 @@ fn data_str(node: &Node, key: &str, default: &str) -> String {
 
 fn data_i64(node: &Node) -> i64 {
     graph_model::data_get_i64(&node.data, "value").unwrap_or(0)
+}
+
+pub(crate) fn switch_case_port_count(node: &Node) -> usize {
+    if let Some(cases) = graph_model::data_get_str(&node.data, "cases") {
+        let n = cases
+            .split(',')
+            .filter(|s| !s.trim().is_empty())
+            .count();
+        if n >= 2 {
+            return n.min(6);
+        }
+    }
+    2
 }

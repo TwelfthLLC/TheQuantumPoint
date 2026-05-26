@@ -63,3 +63,30 @@ pub const PORTS_IF: &[PortSpec] = &[
 ];
 
 pub const PORTS_DEFAULT: &[PortSpec] = &[PortSpec::exec_in("exec"), PortSpec::exec_out("exec")];
+
+pub const PORTS_LOOP: &[PortSpec] = &[
+    PortSpec::exec_in("exec"),
+    PortSpec::exec_out("body"),
+    PortSpec::exec_out("done"),
+];
+
+pub const PORTS_SWITCH: &[PortSpec] = &[
+    PortSpec::exec_in("exec"),
+    PortSpec::exec_out("case1"),
+    PortSpec::exec_out("case2"),
+    PortSpec::exec_out("case3"),
+    PortSpec::exec_out("case4"),
+    PortSpec::exec_out("case5"),
+    PortSpec::exec_out("case6"),
+    PortSpec::exec_out("default"),
+    PortSpec::exec_out("done"),
+];
+
+pub const PORTS_TRY: &[PortSpec] = &[
+    PortSpec::exec_in("exec"),
+    PortSpec::exec_out("try"),
+    PortSpec::exec_out("catch"),
+    PortSpec::exec_out("done"),
+];
+
+pub const PORTS_RETURN: &[PortSpec] = &[PortSpec::exec_in("exec")];

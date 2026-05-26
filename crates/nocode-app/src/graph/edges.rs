@@ -28,7 +28,20 @@ pub(crate) fn hit_handle(
 pub(crate) fn is_output_port(kind: HandleKind) -> bool {
     matches!(
         kind,
-        HandleKind::ExecOut | HandleKind::TrueOut | HandleKind::FalseOut | HandleKind::DoneOut
+        HandleKind::ExecOut
+            | HandleKind::TrueOut
+            | HandleKind::FalseOut
+            | HandleKind::DoneOut
+            | HandleKind::BodyOut
+            | HandleKind::TryOut
+            | HandleKind::Case1Out
+            | HandleKind::Case2Out
+            | HandleKind::Case3Out
+            | HandleKind::Case4Out
+            | HandleKind::Case5Out
+            | HandleKind::Case6Out
+            | HandleKind::DefaultOut
+            | HandleKind::CatchOut
     )
 }
 
@@ -74,6 +87,23 @@ pub(crate) fn parse_source_handle(h: &str) -> HandleKind {
         "true" => HandleKind::TrueOut,
         "false" => HandleKind::FalseOut,
         "done" => HandleKind::DoneOut,
+        "body" => HandleKind::BodyOut,
+        "case1" => HandleKind::Case1Out,
+        "case2" => HandleKind::Case2Out,
+        "case3" => HandleKind::Case3Out,
+        "case4" => HandleKind::Case4Out,
+        "case5" => HandleKind::Case5Out,
+        "case6" => HandleKind::Case6Out,
+        h if h.starts_with("case") => {
+            if let Ok(n) = h[4..].parse::<usize>() {
+                case_handle_from_index(n.saturating_sub(1))
+            } else {
+                HandleKind::Case1Out
+            }
+        }
+        "default" => HandleKind::DefaultOut,
+        "try" => HandleKind::TryOut,
+        "catch" => HandleKind::CatchOut,
         _ => HandleKind::ExecOut,
     }
 }
@@ -83,6 +113,16 @@ pub(crate) fn handle_label(k: HandleKind) -> &'static str {
         HandleKind::TrueOut => "true",
         HandleKind::FalseOut => "false",
         HandleKind::DoneOut => "done",
+        HandleKind::BodyOut => "body",
+        HandleKind::TryOut => "try",
+        HandleKind::Case1Out => "case1",
+        HandleKind::Case2Out => "case2",
+        HandleKind::Case3Out => "case3",
+        HandleKind::Case4Out => "case4",
+        HandleKind::Case5Out => "case5",
+        HandleKind::Case6Out => "case6",
+        HandleKind::DefaultOut => "default",
+        HandleKind::CatchOut => "catch",
         _ => "exec",
     }
 }
@@ -91,11 +131,28 @@ fn handle_target_label(_k: HandleKind) -> &'static str {
     "exec"
 }
 
+pub(crate) fn case_handle_from_index(i: usize) -> HandleKind {
+    match i {
+        0 => HandleKind::Case1Out,
+        1 => HandleKind::Case2Out,
+        2 => HandleKind::Case3Out,
+        3 => HandleKind::Case4Out,
+        4 => HandleKind::Case5Out,
+        _ => HandleKind::Case6Out,
+    }
+}
+
 pub(crate) fn edge_color(handle: &str, palette: &crate::theme::Palette) -> Color32 {
     match handle.to_ascii_lowercase().as_str() {
         "true" => palette.success,
         "false" => palette.danger,
         "done" => palette.assign,
+        "body" => palette.success,
+        "case1" => palette.accent,
+        "case2" => palette.warn,
+        "default" => palette.muted,
+        "try" => palette.success,
+        "catch" => palette.danger,
         _ => palette.accent,
     }
 }
@@ -105,6 +162,16 @@ pub(crate) fn edge_label(handle: &str) -> Option<&'static str> {
         "true" => Some("true"),
         "false" => Some("false"),
         "done" => Some("done"),
+        "body" => Some("body"),
+        "case1" => Some("case1"),
+        "case2" => Some("case2"),
+        "case3" => Some("case3"),
+        "case4" => Some("case4"),
+        "case5" => Some("case5"),
+        "case6" => Some("case6"),
+        "default" => Some("default"),
+        "try" => Some("try"),
+        "catch" => Some("catch"),
         _ => None,
     }
 }
@@ -114,6 +181,16 @@ pub(crate) fn handle_color(kind: HandleKind, palette: &crate::theme::Palette) ->
         HandleKind::TrueOut => palette.success,
         HandleKind::FalseOut => palette.danger,
         HandleKind::DoneOut => palette.assign,
+        HandleKind::BodyOut => palette.success,
+        HandleKind::TryOut => palette.success,
+        HandleKind::Case1Out
+        | HandleKind::Case2Out
+        | HandleKind::Case3Out
+        | HandleKind::Case4Out
+        | HandleKind::Case5Out
+        | HandleKind::Case6Out => palette.accent,
+        HandleKind::DefaultOut => palette.muted,
+        HandleKind::CatchOut => palette.danger,
         HandleKind::ExecIn => palette.accent,
         HandleKind::ExecOut => palette.accent,
     }

@@ -1,7 +1,8 @@
 use graph_model::{
     data_get_i64, data_get_str, data_set_str, DataValue, Node, NODE_API_QUERY, NODE_API_ROUTE,
-    NODE_ASSIGN, NODE_DB_READ, NODE_EMIT_UI, NODE_IF, NODE_LOG, NODE_SUBGRAPH, NODE_UI_BUTTON,
-    NODE_UI_EVENT, NODE_UI_INPUT, NODE_UI_LABEL, NODE_UI_PAGE,
+    NODE_ASSIGN, NODE_DB_READ, NODE_EMIT_UI, NODE_EXPR, NODE_FOR, NODE_IF, NODE_LOG, NODE_RETURN,
+    NODE_FOREACH, NODE_SUBGRAPH, NODE_SWITCH, NODE_UI_BUTTON, NODE_UI_EVENT, NODE_UI_INPUT,
+    NODE_UI_LABEL, NODE_UI_PAGE, NODE_WHILE,
 };
 
 use super::NoCodeApp;
@@ -24,6 +25,16 @@ impl NoCodeApp {
         self.props_condition = get_str(n, "condition");
         self.props_assign_name = get_str(n, "name");
         self.props_assign_value = get_i64(n, "value").to_string();
+        self.props_for_from = data_get_i64(&n.data, "from").unwrap_or(0).to_string();
+        self.props_for_to = data_get_i64(&n.data, "to").unwrap_or(0).to_string();
+        self.props_expression = get_str(n, "expression");
+        self.props_variable = get_str(n, "variable");
+        self.props_case1 = get_str(n, "case1");
+        self.props_case2 = get_str(n, "case2");
+        self.props_cases = get_str(n, "cases");
+        self.props_for_var = get_str(n, "var");
+        self.props_collection = get_str(n, "collection");
+        self.props_item_var = get_str(n, "item_var");
         self.props_label = match n.kind.as_str() {
             NODE_UI_LABEL => get_str(n, "text"),
             NODE_UI_INPUT => get_str(n, "placeholder"),
@@ -50,7 +61,29 @@ impl NoCodeApp {
         };
         match n.kind.as_str() {
             NODE_LOG => set_str(n, "message", &self.props_message),
-            NODE_IF => set_str(n, "condition", &self.props_condition),
+            NODE_IF | NODE_WHILE => set_str(n, "condition", &self.props_condition),
+            NODE_FOR => {
+                set_str(n, "var", &self.props_for_var);
+                let from: i64 = self.props_for_from.parse().unwrap_or(0);
+                let to: i64 = self.props_for_to.parse().unwrap_or(0);
+                n.data.insert("from".to_string(), DataValue::typed_i64(from));
+                n.data.insert("to".to_string(), DataValue::typed_i64(to));
+            }
+            NODE_FOREACH => {
+                set_str(n, "collection", &self.props_collection);
+                set_str(n, "item_var", &self.props_item_var);
+            }
+            NODE_RETURN => set_str(n, "value", &self.props_message),
+            NODE_SWITCH => {
+                set_str(n, "variable", &self.props_variable);
+                set_str(n, "cases", &self.props_cases);
+                set_str(n, "case1", &self.props_case1);
+                set_str(n, "case2", &self.props_case2);
+            }
+            NODE_EXPR => {
+                set_str(n, "name", &self.props_assign_name);
+                set_str(n, "expression", &self.props_expression);
+            }
             NODE_ASSIGN => {
                 set_str(n, "name", &self.props_assign_name);
                 let v: i64 = self.props_assign_value.parse().unwrap_or(0);

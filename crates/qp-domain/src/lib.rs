@@ -5,21 +5,36 @@ mod action;
 mod domain;
 mod ports;
 
-pub use action::{ActionValue, CmpOp, DomainAction, LogicOp};
+pub use action::{ActionValue, ArithOp, CmpOp, DomainAction, LogicOp, SwitchArm};
 pub use domain::Domain;
 pub use ports::{PortDirection, PortKind, PortSpec};
 
 /// Which domain owns a node kind string.
 pub fn domain_for_kind(kind: &str) -> Domain {
     use graph_model::{
-        NODE_API_QUERY, NODE_API_ROUTE, NODE_ASSIGN, NODE_DB_READ, NODE_EMIT_UI, NODE_IF, NODE_LOG,
-        NODE_START, NODE_SUBGRAPH, NODE_UI_BUTTON, NODE_UI_EVENT, NODE_UI_INPUT, NODE_UI_LABEL,
-        NODE_UI_PAGE,
+        NODE_API_QUERY, NODE_API_ROUTE, NODE_ASSIGN, NODE_ASYNC, NODE_BREAK, NODE_CONTINUE,
+        NODE_DB_READ, NODE_EMIT_UI, NODE_EXPR, NODE_FOR, NODE_FOREACH, NODE_IF, NODE_LOG,
+        NODE_RETURN, NODE_START, NODE_SUBGRAPH, NODE_SWITCH, NODE_TRY, NODE_WHILE,
+        NODE_UI_BUTTON,
+        NODE_UI_EVENT, NODE_UI_INPUT, NODE_UI_LABEL, NODE_UI_PAGE,
     };
     match kind {
-        NODE_START | NODE_LOG | NODE_ASSIGN | NODE_IF | NODE_DB_READ | NODE_SUBGRAPH => {
-            Domain::Core
-        }
+        NODE_START
+        | NODE_LOG
+        | NODE_ASSIGN
+        | NODE_IF
+        | NODE_WHILE
+        | NODE_FOR
+        | NODE_FOREACH
+        | NODE_RETURN
+        | NODE_SWITCH
+        | NODE_BREAK
+        | NODE_CONTINUE
+        | NODE_TRY
+        | NODE_EXPR
+        | NODE_ASYNC
+        | NODE_DB_READ
+        | NODE_SUBGRAPH => Domain::Core,
         NODE_UI_PAGE | NODE_UI_BUTTON | NODE_UI_LABEL | NODE_UI_INPUT | NODE_UI_EVENT => {
             Domain::View
         }
@@ -30,11 +45,20 @@ pub fn domain_for_kind(kind: &str) -> Domain {
 
 /// Standard exec/data ports for IDE (all nodes expose exec in/out where applicable).
 pub fn default_ports_for_kind(kind: &str) -> &'static [PortSpec] {
-    use graph_model::{NODE_IF, NODE_START};
-    use ports::{PORTS_DEFAULT, PORTS_IF, PORTS_START};
+    use graph_model::{
+        NODE_ASYNC, NODE_FOR, NODE_FOREACH, NODE_IF, NODE_RETURN, NODE_START, NODE_SWITCH,
+        NODE_TRY, NODE_WHILE,
+    };
+    use ports::{
+        PORTS_DEFAULT, PORTS_IF, PORTS_LOOP, PORTS_RETURN, PORTS_START, PORTS_SWITCH, PORTS_TRY,
+    };
     match kind {
         NODE_START => PORTS_START,
         NODE_IF => PORTS_IF,
+        NODE_WHILE | NODE_FOR | NODE_FOREACH | NODE_ASYNC => PORTS_LOOP,
+        NODE_SWITCH => PORTS_SWITCH,
+        NODE_TRY => PORTS_TRY,
+        NODE_RETURN => PORTS_RETURN,
         _ => PORTS_DEFAULT,
     }
 }

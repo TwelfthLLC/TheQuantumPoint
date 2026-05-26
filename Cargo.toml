@@ -19,7 +19,7 @@ members = [
 default-members = ["crates/nocode-app"]
 
 [workspace.package]
-# Crate semver (Cargo). Product release label: see VERSION / README → 0.0.0.1
+# Crate semver (Cargo). Product release label: see VERSION / README → 0.0.0.2
 version = "0.0.1"
 edition = "2021"
 license = "MIT"

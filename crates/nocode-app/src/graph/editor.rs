@@ -109,6 +109,16 @@ impl GraphEditor {
             HandleKind::ExecOut => Pos2::new(r.right(), r.center().y),
             HandleKind::TrueOut => Pos2::new(r.right(), r.top() + r.height() * 0.3),
             HandleKind::FalseOut => Pos2::new(r.right(), r.top() + r.height() * 0.7),
+            HandleKind::BodyOut => Pos2::new(r.right(), r.top() + r.height() * 0.35),
+            HandleKind::TryOut => Pos2::new(r.right(), r.top() + r.height() * 0.3),
+            HandleKind::CatchOut => Pos2::new(r.right(), r.top() + r.height() * 0.7),
+            HandleKind::Case1Out => Pos2::new(r.right(), r.top() + r.height() * 0.2),
+            HandleKind::Case2Out => Pos2::new(r.right(), r.top() + r.height() * 0.35),
+            HandleKind::Case3Out => Pos2::new(r.right(), r.top() + r.height() * 0.5),
+            HandleKind::Case4Out => Pos2::new(r.right(), r.top() + r.height() * 0.65),
+            HandleKind::Case5Out => Pos2::new(r.right(), r.top() + r.height() * 0.8),
+            HandleKind::Case6Out => Pos2::new(r.right(), r.top() + r.height() * 0.9),
+            HandleKind::DefaultOut => Pos2::new(r.right(), r.top() + r.height() * 0.95),
             HandleKind::DoneOut => Pos2::new(r.center().x, r.bottom()),
         }
     }
@@ -119,7 +129,13 @@ impl GraphEditor {
 
     fn handle_pos_for_edge_target(&self, node: &Node, handle: &str) -> Pos2 {
         match handle.to_ascii_lowercase().as_str() {
-            "true" | "false" | "body" => self.handle_pos(node, HandleKind::ExecIn),
+            h if matches!(
+                h,
+                "true" | "false" | "body" | "default" | "try" | "catch"
+            ) || h.starts_with("case") =>
+            {
+                self.handle_pos(node, HandleKind::ExecIn)
+            }
             _ => self.handle_pos(node, HandleKind::ExecIn),
         }
     }

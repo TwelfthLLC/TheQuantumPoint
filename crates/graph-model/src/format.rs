@@ -247,7 +247,7 @@ mod tests {
         let m = ProjectManifest {
             id: "id".into(),
             name: "n".into(),
-            qp_tool_version: "0.0.0.1".into(),
+            qp_tool_version: "0.0.0.2".into(),
             entry_graph: "graphs/main.qp".into(),
             graphs: vec!["graphs/main.qp".into()],
         };
@@ -350,7 +350,7 @@ mod tests {
             encode_project_manifest(&ProjectManifest {
                 id: "hello-rust".into(),
                 name: "hello-rust".into(),
-                qp_tool_version: "0.0.0.1".into(),
+                qp_tool_version: "0.0.0.2".into(),
                 entry_graph: "graphs/main.qp".into(),
                 graphs: vec!["graphs/main.qp".into()],
             })
@@ -449,7 +449,7 @@ mod tests {
             encode_project_manifest(&ProjectManifest {
                 id: "branch-rust".into(),
                 name: "branch-rust".into(),
-                qp_tool_version: "0.0.0.1".into(),
+                qp_tool_version: "0.0.0.2".into(),
                 entry_graph: "graphs/main.qp".into(),
                 graphs: vec!["graphs/main.qp".into()],
             })

@@ -1,7 +1,7 @@
 use egui::{Pos2, Ui, Vec2};
 use graph_model::{
-    maturity_label, node_maturity, DataValue, Node, Project, NODE_ASSIGN, NODE_IF, NODE_LOG,
-    NODE_SUBGRAPH,
+    maturity_label, node_maturity, DataValue, Node, Project, NODE_ASSIGN, NODE_EXPR, NODE_FOR,
+    NODE_FOREACH, NODE_IF, NODE_LOG, NODE_RETURN, NODE_SUBGRAPH, NODE_SWITCH, NODE_WHILE,
 };
 use std::collections::HashMap;
 
@@ -57,6 +57,31 @@ pub fn add_node_at(project: &mut Project, kind: &str, world: Pos2) -> String {
         }
         NODE_SUBGRAPH => {
             data.insert("module".to_string(), DataValue::str("graphs/auth.qp"));
+        }
+        NODE_WHILE => {
+            data.insert("condition".to_string(), DataValue::str("true"));
+        }
+        NODE_FOR => {
+            data.insert("var".to_string(), DataValue::str("i"));
+            data.insert("from".to_string(), DataValue::typed_i64(0));
+            data.insert("to".to_string(), DataValue::typed_i64(10));
+        }
+        NODE_RETURN => {
+            data.insert("value".to_string(), DataValue::str(""));
+        }
+        NODE_SWITCH => {
+            data.insert("variable".to_string(), DataValue::str("x"));
+            data.insert("cases".to_string(), DataValue::str("1,2"));
+            data.insert("case1".to_string(), DataValue::str("1"));
+            data.insert("case2".to_string(), DataValue::str("2"));
+        }
+        NODE_FOREACH => {
+            data.insert("collection".to_string(), DataValue::str("users"));
+            data.insert("item_var".to_string(), DataValue::str("row"));
+        }
+        NODE_EXPR => {
+            data.insert("name".to_string(), DataValue::str("result"));
+            data.insert("expression".to_string(), DataValue::str("a + b"));
         }
         graph_model::NODE_EMIT_UI => {
             data.insert("signal".to_string(), DataValue::str("refresh_ui"));

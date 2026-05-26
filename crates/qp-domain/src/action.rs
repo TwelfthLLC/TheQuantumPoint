@@ -3,23 +3,53 @@ use serde::{Deserialize, Serialize};
 /// Language-agnostic domain action (lowered to universal IR, then to Rust/Go/etc.).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum DomainAction {
-    /// `Action::Print` — stdout / log sink.
     Print { message: String },
-    /// `Action::DataStore` — bind a name to a value in the current scope.
     DataStore { name: String, value: ActionValue },
-    /// `Action::Branch` — conditional exec split.
     Branch {
         condition: ActionValue,
         then_body: Vec<DomainAction>,
         else_body: Vec<DomainAction>,
     },
-    /// Mock DB read — runtime uses in-memory row; emitters generate stubs.
+    While {
+        condition: ActionValue,
+        body: Vec<DomainAction>,
+    },
+    For {
+        var: String,
+        from: i64,
+        to: i64,
+        body: Vec<DomainAction>,
+    },
+    ForEach {
+        item_var: String,
+        collection: String,
+        body: Vec<DomainAction>,
+    },
+    Return { value: Option<ActionValue> },
+    Switch {
+        discriminant: ActionValue,
+        arms: Vec<SwitchArm>,
+        default_body: Vec<DomainAction>,
+    },
+    Break,
+    Continue,
+    Try {
+        try_body: Vec<DomainAction>,
+        catch_body: Vec<DomainAction>,
+    },
+    Expr { name: String, value: ActionValue },
+    Async { body: Vec<DomainAction> },
     DbRead { table: String, into_var: String },
-    /// Inline compiled subgraph module.
     Module {
         name: String,
         actions: Vec<DomainAction>,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SwitchArm {
+    pub label: String,
+    pub body: Vec<DomainAction>,
 }
 
 /// Typed literal / structured expressions (no target-language snippets).
@@ -36,6 +66,11 @@ pub enum ActionValue {
         right: Box<ActionValue>,
     },
     BinOp {
+        op: ArithOp,
+        left: Box<ActionValue>,
+        right: Box<ActionValue>,
+    },
+    Logic {
         op: LogicOp,
         left: Box<ActionValue>,
         right: Box<ActionValue>,
@@ -57,4 +92,12 @@ pub enum CmpOp {
 pub enum LogicOp {
     And,
     Or,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ArithOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
 }

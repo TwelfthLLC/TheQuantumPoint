@@ -149,18 +149,21 @@ impl Project {
     }
 }
 
+pub fn is_switch_case_handle(handle: &str) -> bool {
+    let h = handle.to_ascii_lowercase();
+    h.starts_with("case") && h.len() > 4 && h[4..].chars().all(|c| c.is_ascii_digit())
+}
+
 pub fn is_exec_handle(handle: &str) -> bool {
+    let h = handle.to_ascii_lowercase();
     matches!(
-        handle.to_ascii_lowercase().as_str(),
-        "exec" | "true" | "false" | "body" | "done"
-    )
+        h.as_str(),
+        "exec" | "true" | "false" | "body" | "done" | "default" | "try" | "catch"
+    ) || is_switch_case_handle(handle)
 }
 
 pub fn is_exec_target(handle: &str) -> bool {
-    matches!(
-        handle.to_ascii_lowercase().as_str(),
-        "exec" | "true" | "false" | "body"
-    )
+    is_exec_handle(handle)
 }
 
 pub const NODE_START: &str = "start";
@@ -169,6 +172,16 @@ pub const NODE_START: &str = "start";
 pub const NODE_LOG: &str = "log";
 pub const NODE_ASSIGN: &str = "assign";
 pub const NODE_IF: &str = "if";
+pub const NODE_WHILE: &str = "while";
+pub const NODE_FOR: &str = "for";
+pub const NODE_FOREACH: &str = "foreach";
+pub const NODE_RETURN: &str = "return";
+pub const NODE_SWITCH: &str = "switch";
+pub const NODE_BREAK: &str = "break";
+pub const NODE_CONTINUE: &str = "continue";
+pub const NODE_TRY: &str = "try";
+pub const NODE_EXPR: &str = "expr";
+pub const NODE_ASYNC: &str = "async";
 pub const NODE_API_ROUTE: &str = "api_route";
 pub const NODE_API_QUERY: &str = "api_query";
 pub const NODE_DB_READ: &str = "db_read";

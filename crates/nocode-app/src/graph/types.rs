@@ -14,6 +14,16 @@ pub enum HandleKind {
     TrueOut,
     FalseOut,
     DoneOut,
+    BodyOut,
+    TryOut,
+    Case1Out,
+    Case2Out,
+    Case3Out,
+    Case4Out,
+    Case5Out,
+    Case6Out,
+    DefaultOut,
+    CatchOut,
 }
 
 pub enum GraphAction {
@@ -123,6 +133,66 @@ const CORE_CATALOG: &[NodeCatalogEntry] = &[
         kind: graph_model::NODE_SUBGRAPH,
         title: "Subgraph",
         keywords: "subgraph module import",
+        color_fn: |p| p.accent,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_WHILE,
+        title: "While",
+        keywords: "while loop tsikl",
+        color_fn: |p| p.if_node,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_FOR,
+        title: "For",
+        keywords: "for loop counter",
+        color_fn: |p| p.if_node,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_FOREACH,
+        title: "Foreach",
+        keywords: "foreach collection loop",
+        color_fn: |p| p.if_node,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_RETURN,
+        title: "Return",
+        keywords: "return chiqish",
+        color_fn: |p| p.danger,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_SWITCH,
+        title: "Switch",
+        keywords: "switch match case",
+        color_fn: |p| p.warn,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_BREAK,
+        title: "Break",
+        keywords: "break loop",
+        color_fn: |p| p.danger,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_CONTINUE,
+        title: "Continue",
+        keywords: "continue loop",
+        color_fn: |p| p.accent,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_TRY,
+        title: "Try",
+        keywords: "try catch xato",
+        color_fn: |p| p.warn,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_EXPR,
+        title: "Expr",
+        keywords: "expression + - * /",
+        color_fn: |p| p.assign,
+    },
+    NodeCatalogEntry {
+        kind: graph_model::NODE_ASYNC,
+        title: "Async",
+        keywords: "async await",
         color_fn: |p| p.accent,
     },
 ];

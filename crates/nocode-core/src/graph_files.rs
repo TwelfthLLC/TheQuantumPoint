@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Product / manifest tool version (see repo `VERSION`).
-pub const QP_VERSION: &str = "0.0.0.1";
+pub const QP_VERSION: &str = "0.0.0.2";
 pub const GRAPHS_DIR: &str = "graphs";
 pub const DEFAULT_ENTRY: &str = "graphs/main.qp";
 pub const MANIFEST_FILE: &str = PROJECT_MANIFEST_FILE;

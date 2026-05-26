@@ -5,7 +5,7 @@
 # Quantum Point
 
 <p align="center">
-  <strong>Version 0.0.0.1</strong> (alpha) · <a href="LICENSE">MIT</a>
+  <strong>Version 0.0.0.2</strong> · <a href="LICENSE">MIT</a>
 </p>
 
 A visual programming environment — graph → universal IR → native code. This is not a generic “no-code” builder: the focus is **data-oriented design** (DOD), **binary** project files (`.qp`), and a **domain-separated** pipeline (Core / View / Bridge).
@@ -24,17 +24,18 @@ A visual programming environment — graph → universal IR → native code. Thi
 
 ---
 
-## Current status (v0.0.0.1)
+## Current status (v0.0.0.2)
 
-Alpha: the main pipeline works; some nodes are **beta** or **stub**.
+Core pipeline is **product-ready** for visual backend logic; View and advanced Bridge integrations continue on the roadmap.
 
-| Ready | Partial | Planned |
-|-------|---------|---------|
-| Core: Start, Log, Assign, If | DB Read (mock) | Real SQL |
-| Run → IR + `qp-runtime` preview | View layout = list | Canvas ↔ runtime sync |
-| Build → Rust + sandbox cargo | Bridge HTTP | axum server |
-| Studio + CLI + binary `.qp` | WASM target | full wasm-bindgen |
-| View Runtime (egui) | Subgraph UI wizard | module management |
+| Ready | Beta / next |
+|-------|-------------|
+| Core: Start, Log, Assign, If, While, For, **Foreach**, Return, Break, Continue, Expr, **Switch** (dynamic cases), **Try**, **Async** (tokio emit), **DB Read** (mock tables) | Subgraph wizard, real SQL |
+| Run → IR + `qp-runtime` preview | View canvas ↔ runtime positions |
+| Build → Rust + sandbox cargo (+ tokio when graph uses Async) | axum Bridge option |
+| Bridge: stdlib HTTP on `127.0.0.1:8787` | Event wiring Core ↔ Bridge |
+| Studio + CLI + binary `.qp` | full wasm-bindgen |
+| View Runtime (egui) | |
 
 Details: [docs/ROADMAP.md](docs/ROADMAP.md) · architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
@@ -88,7 +89,7 @@ cargo run -p nocode-cli -- exec examples/hello-rust/graphs/main.qp
           → cargo / artifacts
 ```
 
-**Core** nodes (today): `start`, `log`, `assign`, `if`, `db_read` (beta), `subgraph_call` (beta).
+**Core** nodes: `start`, `log`, `assign`, `if`, `while`, `for`, `return`, `switch`, `break`, `continue`, `try`, `expr`, `async`, `db_read` (beta), `subgraph_call` (beta).
 
 ---
 
@@ -149,7 +150,7 @@ cargo test --workspace
 cargo test -p graph-model write_workspace_example_binaries -- --nocapture
 ```
 
-Crate versions in `Cargo.toml` use semver `0.0.1`; product version **`0.0.0.1`** — see [VERSION](VERSION).
+Crate versions in `Cargo.toml` use semver `0.0.1`; product version **`0.0.0.2`** — see [VERSION](VERSION).
 
 ---
 

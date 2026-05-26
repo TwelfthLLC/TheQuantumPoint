@@ -1,6 +1,6 @@
 # Quantum Point — Architecture
 
-**Version:** 0.0.0.1 (alpha) — [VERSION](../VERSION)
+**Version:** 0.0.0.2 (alpha) — [VERSION](../VERSION)
 
 ## Pipeline
 
